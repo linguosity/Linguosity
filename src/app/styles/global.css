@@ -31,3 +31,26 @@ body {
     text-wrap: balance;
   }
 }
+
+.drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+.select-none {
+  user-select: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background-size: 1000px 100%;
+}

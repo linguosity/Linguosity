@@ -1,9 +1,7 @@
 import Navbar from '../components/layout/Navbar';
 import Sidebar from '../components/layout/Sidebar';
-import '../app/styles/global.css'
-import ConversationalInput from '../components/ai/ConversationalInput/ConversationalInput'
-
-
+import '../app/styles/global.css';
+import ConversationalInput from '../components/ai/ConversationalInput/ConversationalInput';
 
 export default function RootLayout({
   children,
@@ -25,6 +23,7 @@ export default function RootLayout({
           </div>
         </div>
 
+        {/* ConversationalInput placed here to render the chat component */}
         <ConversationalInput />
       </body>
     </html>
