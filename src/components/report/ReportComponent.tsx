@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Textarea, Button, Table } from 'flowbite-react';
 
-interface ReportCardProps {
+interface CardProps {
   title: string;
   description: string;
 }
@@ -18,103 +18,107 @@ interface HeaderInfo {
   Evaluator: string;
 }
 
-const ReportCard: React.FC<ReportCardProps> = ({ title, description }) => {
-  console.log(`Rendering ReportCard for ${title}`);
+export const InputCard: React.FC<CardProps & { onSubmit: (input: string) => void }> = ({ title, description, onSubmit }) => {
   const [input, setInput] = useState('');
-  const [output, setOutput] = useState<string | HeaderInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
-    console.log(`Submit button clicked for ${title}`);
     setIsLoading(true);
-    try {
-      const endpoint = title === "Header" 
-        ? '/api/ai/process/structured-output'
-        : '/api/ai/process';
-      console.log(`Using endpoint: ${endpoint}`);
-
-      console.log('Sending request with input:', input);
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input, title }),
-      });
-
-      console.log('Response received');
-      if (!response.ok) {
-        console.error('Response not OK:', response.status, response.statusText);
-        throw new Error('Failed to fetch');
-      }
-      
-      const data = await response.json();
-      console.log('Parsed response data:', data);
-      
-      setOutput(data);
-      console.log('Output state updated');
-    } catch (error) {
-      console.error('Error in handleSubmit:', error);
-    } finally {
-      setIsLoading(false);
-      console.log('Loading state set to false');
-    }
+    await onSubmit(input);
+    setIsLoading(false);
   };
 
   return (
-    <div className="flex justify-between gap-4 mb-4">
-      <Card className="p-4 text-md w-1/2">
-        <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-          {title} Input
-        </h5>
-        <div className="mb-4">
-          <Textarea
-            id={`${title.toLowerCase()}-input`}
-            value={input}
-            onChange={(e) => {
-              console.log(`Input changed for ${title}:`, e.target.value);
-              setInput(e.target.value);
-            }}
-            placeholder={`Enter ${title.toLowerCase()} information`}
-            rows={4}
-            required
-          />
-          <Button onClick={handleSubmit} color="blue" className="w-auto mt-2" disabled={isLoading}>
-            {isLoading ? 'Generating...' : 'Generate'}
-          </Button>
-        </div>
-      </Card>
-
-      <Card className="p-4 text-md w-1/2">
-        <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
-          {title} Output
-        </h5>
-        {output ? (
-          title === "Header" ? (
-            <Table>
-              <Table.Body className="divide-y">
-                {Object.entries(output as HeaderInfo).map(([key, value]) => (
-                  <Table.Row key={key} className="bg-white dark:border-gray-700 dark:bg-gray-800">
-                    <Table.Cell className="whitespace-nowrap font-medium text-gray-900 dark:text-white">
-                      {key}:
-                    </Table.Cell>
-                    <Table.Cell>{value}</Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            </Table>
-          ) : (
-            <p className="font-normal text-gray-700 dark:text-gray-400">
-              {output as string}
-            </p>
-          )
-        ) : (
-          <div className="font-normal text-gray-700 dark:text-gray-400 relative">
-            <p className="relative z-10">{description}</p>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-100 via-blue-200 to-blue-100 dark:from-blue-900 dark:via-blue-800 dark:to-blue-900 animate-shimmer"></div>
-          </div>
-        )}
-      </Card>
-    </div>
+    <Card className="p-4 text-md w-full">
+      <h5 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
+        {title} Input
+      </h5>
+      <div className="mb-4">
+        <Textarea
+          id={`${title.toLowerCase()}-input`}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={`Enter ${title.toLowerCase()} information`}
+          rows={4}
+          required
+        />
+        <Button onClick={handleSubmit} color="blue" className="w-auto mt-2" disabled={isLoading}>
+          {isLoading ? 'Generating...' : 'Generate'}
+        </Button>
+      </div>
+    </Card>
   );
 };
 
-export default ReportCard;
+export const OutputCard: React.FC<CardProps & { output: any }> = ({
+    title,
+    description,
+    output,
+  }) => {
+    return (
+        <Card className="p-4 text-md w-full">
+  <h5 className="text-xl text-center font-normal tracking-tight text-gray-900 dark:text-white mb-4">
+    {title} Output
+  </h5>
+  {output ? (
+    title === "Header" ? (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+          <tbody>
+            {(() => {
+              const entries = Object.entries(output as HeaderInfo);
+              const rows = [];
+              for (let i = 0; i < entries.length; i += 2) {
+                const [key1, value1] = entries[i];
+                const [key2, value2] = entries[i + 1] || [null, null];
+                rows.push(
+                  <tr key={i} className="bg-white dark:bg-gray-800">
+                    <td className="px-3 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap border-b border-gray-200 dark:border-gray-600">
+                      {key1}:
+                    </td>
+                    <td
+                      className={`px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 ${
+                        !value1 || value1 === "Not provided" ? 'missing-data' : ''
+                      }`}
+                    >
+                      {value1 && value1 !== "Not provided" ? value1 : ''}
+                    </td>
+                    {key2 && (
+                      <>
+                        <td className="px-3 py-2 font-medium text-gray-900 dark:text-white whitespace-nowrap border-b border-gray-200 dark:border-gray-600">
+                          {key2}:
+                        </td>
+                        <td
+                          className={`px-3 py-2 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 ${
+                            !value2 || value2 === "Not provided" ? 'missing-data' : ''
+                          }`}
+                        >
+                          {value2 && value2 !== "Not provided" ? value2 : ''}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              }
+              return rows;
+            })()}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <p className="font-normal text-gray-700 dark:text-gray-300">
+        {output as string}
+      </p>
+    )
+  ) : (
+    <div className="font-normal text-gray-700 dark:text-gray-300">
+      <p>{description}</p>
+    </div>
+  )}
+</Card>
+
+
+      
+    );
+  };
+  

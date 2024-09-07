@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from "next/image";
-import ReportCard from "../components/report/ReportComponent";
+import { InputCard, OutputCard } from "../components/report/ReportComponent";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { ReportProvider } from '../context/ReportContext'
 
 interface ReportItem {
   id: string;
@@ -11,9 +12,7 @@ interface ReportItem {
   description: string;
 }
 
-export default function Home() {
-  console.log('Rendering Home component');
-
+const Home: React.FC = () => {
   const [reportItems, setReportItems] = useState<ReportItem[]>([
     { id: 'header', title: "Header", description: "Generate the header section of the report with client information." },
     { id: 'articulation', title: "Articulation", description: "Assess and report on the client's articulation skills." },
@@ -21,14 +20,10 @@ export default function Home() {
     { id: 'fluency', title: "Fluency", description: "Analyze and report on the client's speech fluency." },
   ]);
 
-  useEffect(() => {
-    console.log('Initial reportItems:', reportItems);
-  }, []);
+  const [outputs, setOutputs] = useState<{ [key: string]: string | null }>({});
 
   const onDragEnd = (result: any) => {
-    console.log('Drag ended:', result);
     if (!result.destination) {
-      console.log('No destination, skipping reorder');
       return;
     }
 
@@ -36,8 +31,28 @@ export default function Home() {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    console.log('New order:', items);
     setReportItems(items);
+  };
+
+  const handleSubmit = async (id: string, input: string) => {
+    try {
+      const endpoint = id === "header" 
+        ? '/api/ai/process/structured-output'
+        : '/api/ai/process';
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input, title: id }),
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch');
+      
+      const data = await response.json();
+      setOutputs(prev => ({ ...prev, [id]: data }));
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+    }
   };
 
   return (
@@ -48,23 +63,34 @@ export default function Home() {
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="w-full max-w-5xl"
+              className="w-full max-w-7xl"
             >
               {reportItems.map((item, index) => (
-                <Draggable key={item.id} draggableId={item.id} index={index}>
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                    >
-                      <ReportCard
-                        title={item.title}
-                        description={item.description}
-                      />
-                    </div>
-                  )}
-                </Draggable>
+                <div key={item.id} className="flex gap-4 mb-4">
+                  <Draggable draggableId={item.id} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="w-2/5"
+                      >
+                        <InputCard
+                          title={item.title}
+                          description={item.description}
+                          onSubmit={(input: string) => handleSubmit(item.id, input)}
+                        />
+                      </div>
+                    )}
+                  </Draggable>
+                  <div className="w-3/5">
+                    <OutputCard
+                      title={item.title}
+                      description={item.description}
+                      output={outputs[item.id]}
+                    />
+                  </div>
+                </div>
               ))}
               {provided.placeholder}
             </div>
@@ -85,3 +111,5 @@ export default function Home() {
     </main>
   );
 }
+
+export default Home;
