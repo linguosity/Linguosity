@@ -1,10 +1,9 @@
-"use client"
+"use client";
 
 import React, { useState } from 'react';
 import Image from "next/image";
 import { InputCard, OutputCard } from "../components/report/ReportComponent";
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { ReportProvider } from '../context/ReportContext'
 
 interface ReportItem {
   id: string;
@@ -20,7 +19,7 @@ const Home: React.FC = () => {
     { id: 'fluency', title: "Fluency", description: "Analyze and report on the client's speech fluency." },
   ]);
 
-  const [outputs, setOutputs] = useState<{ [key: string]: string | null }>({});
+  const [outputs, setOutputs] = useState<{ [key: string]: any }>({});
 
   const onDragEnd = (result: any) => {
     if (!result.destination) {
@@ -36,24 +35,41 @@ const Home: React.FC = () => {
 
   const handleSubmit = async (id: string, input: string) => {
     try {
+      const existingData = outputs[id] || {};  
+      const mergedInput = { ...existingData, new_information: input };
+  
+      const inputToSend = typeof mergedInput === 'object' ? JSON.stringify(mergedInput) : mergedInput;
+  
       const endpoint = id === "header" 
         ? '/api/ai/process/structured-output'
         : '/api/ai/process';
-
+  
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input, title: id }),
+        body: JSON.stringify({
+          input: inputToSend,
+          title: id 
+        }), 
       });
-
-      if (!response.ok) throw new Error('Failed to fetch');
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch');
+      }
       
       const data = await response.json();
-      setOutputs(prev => ({ ...prev, [id]: data }));
+      
+      // For non-header sections, wrap the parsed_content in an object
+      const processedData = id === 'header' ? data : { content: data.parsed_content };
+      
+      setOutputs(prev => ({ ...prev, [id]: processedData }));
     } catch (error) {
       console.error('Error in handleSubmit:', error);
     }
   };
+  
+  
 
   return (
     <main className="flex min-h-screen flex-col items-center p-24">
@@ -79,6 +95,7 @@ const Home: React.FC = () => {
                           title={item.title}
                           description={item.description}
                           onSubmit={(input: string) => handleSubmit(item.id, input)}
+                          existingData={outputs[item.id]}  // Pass existing data to InputCard
                         />
                       </div>
                     )}
@@ -88,6 +105,7 @@ const Home: React.FC = () => {
                       title={item.title}
                       description={item.description}
                       output={outputs[item.id]}
+                      existingData={outputs[item.id]}  // Pass existing data to OutputCard
                     />
                   </div>
                 </div>
@@ -110,6 +128,6 @@ const Home: React.FC = () => {
       </div>
     </main>
   );
-}
+};
 
 export default Home;

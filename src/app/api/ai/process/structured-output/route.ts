@@ -36,7 +36,11 @@ export async function POST(request: Request) {
     const completion = await openai.beta.chat.completions.parse({
       model: "gpt-4o-mini-2024-07-18",
       messages: [
-        { role: "system", content: "Extract the header information for a speech and language therapy report. If the input doesn't contain all required information, use placeholder text like 'Not provided' for missing fields." },
+        {
+          role: "system",
+          content:
+            "Extract the header information for a speech and language therapy report. If the input doesn't contain all required information, use placeholder text like 'Not provided' for missing fields."
+        },
         { role: "user", content: input },
       ],
       response_format: zodResponseFormat(HeaderInfo, "headerInfo"),

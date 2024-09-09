@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { AIResponseSchema } from '@/types/ai'
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 
@@ -14,15 +13,26 @@ const supabase = createClient<Database>(
 );
 
 export async function POST(request: Request) {
-  const { input } = await request.json();
+  const { input, title } = await request.json();
 
   try {
     console.log('Received input:', input);
+    console.log('Section title:', title);
+
+    let systemPrompt = "You are a helpful AI assistant for speech and language therapy report writing. Provide concise responses.";
+    
+    if (title === 'articulation') {
+      systemPrompt += " Focus on the client's articulation skills, including speech sound errors, error patterns, intelligibility, impact on communication, and recommendations.";
+    } else if (title === 'language') {
+      systemPrompt += " Focus on the client's language abilities, including receptive and expressive language skills, vocabulary, syntax, and pragmatics.";
+    } else if (title === 'fluency') {
+      systemPrompt += " Focus on the client's speech fluency, including types of disfluencies, frequency, duration, and impact on communication.";
+    }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18", // Changed to a more widely available model
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
-        { role: "system", content: "You are a helpful AI assistant for speech and language therapy report writing. Provide concise responses." },
+        { role: "system", content: systemPrompt },
         { role: "user", content: input },
       ],
       temperature: 0.7,
