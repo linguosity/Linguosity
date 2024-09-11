@@ -30,9 +30,9 @@ const Navbar: React.FC = () => {
             <img
               src="/logo.svg"
               className="mr-3 h-8"
-              alt="Speech Report Logo"
+              alt=""
             />
-            <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Speech Report</span>
+            <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Linguosity</span>
           </Link>
         </div>
         <div className="flex items-center lg:order-2">

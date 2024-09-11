@@ -83,7 +83,7 @@ const Home: React.FC = () => {
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                         {...provided.dragHandleProps}
-                        className="w-2/5"
+                        className="w-1/2"
                       >
                         <InputCard
                           title={item.title}
@@ -94,7 +94,7 @@ const Home: React.FC = () => {
                       </div>
                     )}
                   </Draggable>
-                  <div className="w-3/5">
+                  <div className="w-1/2">
                     <OutputCard
                       title={item.title}
                       description={item.description}
