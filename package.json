@@ -9,9 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^16.6.0",
     "@heroicons/react": "^2.1.5",
     "@supabase/supabase-js": "^2.45.3",
     "@types/react-beautiful-dnd": "^13.1.8",
+    "ag-grid-community": "^32.1.0",
+    "ag-grid-react": "^32.1.0",
     "flowbite": "^2.5.1",
     "flowbite-react": "^0.10.1",
     "next": "14.2.7",
