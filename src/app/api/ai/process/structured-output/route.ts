@@ -1,62 +1,57 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { zodResponseFormat } from "openai/helpers/zod";
-import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
+import { reportStructures, ReportSection } from '@/lib/reportStructures';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const HeaderInfo = z.object({
-  Name: z.string(),
-  Birthday: z.string(),
-  DateOfEvaluation: z.string(),
-  DateOfReport: z.string(),
-  Parents: z.string(),
-  Eligibility: z.string(),
-  Age: z.string(),
-  Grade: z.string(),
-  Evaluator: z.string(),
-});
-
 export async function POST(request: Request) {
-  console.log('Structured Output API route called');
-  const { input } = await request.json();
-  console.log('Received input:', input);
-
   try {
-    console.log('Calling OpenAI API');
+    const body = await request.json();
+    console.log('Received body:', JSON.stringify(body, null, 2));
+
+    const { input, section } = body;
+    console.log('Extracted section:', section);
+
+    if (!section) {
+      throw new Error(`Missing section parameter`);
+    }
+
+    const sectionData = reportStructures[section.toLowerCase()] as ReportSection | undefined;
+
+    if (!sectionData) {
+      console.log('Available sections:', Object.keys(reportStructures));
+      throw new Error(`Invalid section: ${section}`);
+    }
+
+    const { schema, systemPrompt } = sectionData;
+
+    console.log('Using system prompt:', systemPrompt);
+
     const completion = await openai.beta.chat.completions.parse({
       model: "gpt-4o-mini-2024-07-18",
       messages: [
-        {
-          role: "system",
-          content:
-            "Extract the header information for a speech and language therapy report. If the input doesn't contain all required information, use placeholder text like 'Not provided' for missing fields."
-        },
+        { role: "system", content: systemPrompt },
         { role: "user", content: input },
       ],
-      response_format: zodResponseFormat(HeaderInfo, "headerInfo"),
+      response_format: zodResponseFormat(schema, `${section}Info`),
     });
 
-    console.log('OpenAI API response received');
-    console.log('OpenAI response:', JSON.stringify(completion, null, 2));
+    const sectionInfo = completion.choices[0].message.parsed;
+    console.log('Parsed section info:', sectionInfo);
 
-    const headerInfo = completion.choices[0].message.parsed;
-    console.log('Parsed header info:', headerInfo);
-
-    console.log('Storing in Supabase');
+    // Insert data into Supabase
     const { data, error } = await supabase
       .from('ai_parsed_content')
       .insert({
-        parsed_content: JSON.stringify(headerInfo),
+        parsed_content: sectionInfo as Database['public']['Tables']['ai_parsed_content']['Insert']['parsed_content'],
         report_content_id: null,
       })
       .select();
@@ -66,20 +61,11 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    console.log('Supabase response:', JSON.stringify(data, null, 2));
+    console.log('Data stored in Supabase:', data);
 
-    console.log('Sending response');
-    return NextResponse.json(headerInfo);
+    return NextResponse.json(sectionInfo);
   } catch (error: any) {
-    console.error('Error in structured output API:', error);
-    let errorMessage = 'Failed to process input';
-    if (error.error?.message) {
-      errorMessage = error.error.message;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    console.error('Error message:', errorMessage);
-
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    console.error(`Error in API:`, error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

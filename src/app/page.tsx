@@ -35,42 +35,36 @@ const Home: React.FC = () => {
 
   const handleSubmit = async (id: string, input: string) => {
     try {
-      const existingData = outputs[id] || {};  
+      const existingData = outputs[id] || {};
       const mergedInput = { ...existingData, new_information: input };
-  
       const inputToSend = typeof mergedInput === 'object' ? JSON.stringify(mergedInput) : mergedInput;
   
-      const endpoint = id === "header" 
-        ? '/api/ai/process/structured-output'
-        : '/api/ai/process';
-  
-      const response = await fetch(endpoint, {
+      console.log('Sending data:', { input: inputToSend, section: id });
+
+      const response = await fetch('/api/ai/process/structured-output', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           input: inputToSend,
-          title: id 
+          section: id 
         }), 
       });
   
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to fetch');
       }
-      
+     
       const data = await response.json();
-      
-      // For non-header sections, wrap the parsed_content in an object
-      const processedData = id === 'header' ? data : { content: data.parsed_content };
-      
-      setOutputs(prev => ({ ...prev, [id]: processedData }));
+      console.log('Received data:', data);
+     
+      setOutputs(prev => ({ ...prev, [id]: data }));
     } catch (error) {
       console.error('Error in handleSubmit:', error);
     }
   };
   
-  
-
   return (
     <main className="flex min-h-screen flex-col items-center p-24">
       <DragDropContext onDragEnd={onDragEnd}>

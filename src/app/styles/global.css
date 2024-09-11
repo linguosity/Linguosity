@@ -66,3 +66,12 @@ body {
   background-size: 150px 150px;
 }
 
+@layer utilities {
+  .z-progress {
+    z-index: 50;
+  }
+}
+
+.progress-debug {
+  outline: 2px solid red !important;
+}
